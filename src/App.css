@@ -72,23 +72,122 @@
   gap: 1rem;
 }
 
-.entries-textarea {
-  flex: 1;
-  resize: none;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  color: var(--text-main);
-  font-size: 1rem;
-  line-height: 1.5;
-  outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+/* Ticket Entry Form */
+.add-entry-form {
+  display: flex;
+  gap: 0.5rem;
 }
 
-.entries-textarea:focus {
+.add-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  color: var(--text-main);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.add-input:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.add-btn {
+  background: var(--surface-border);
+  color: var(--text-main);
+  border-radius: var(--radius-sm);
+  width: 45px;
+  font-size: 1.5rem;
+  font-weight: 300;
+  transition: background var(--transition-fast);
+}
+
+.add-btn:not(:disabled):hover {
+  background: var(--accent-primary);
+}
+
+/* Ticket List */
+.entries-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* Custom Scrollbar for list */
+.entries-list::-webkit-scrollbar {
+  width: 6px;
+}
+.entries-list::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.1);
+  border-radius: 4px;
+}
+.entries-list::-webkit-scrollbar-thumb {
+  background: var(--surface-border);
+  border-radius: 4px;
+}
+
+.entry-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+}
+
+.entry-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.entry-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(0,0,0,0.2);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem;
+}
+
+.count-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 1.2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.count-btn:not(:disabled):hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.entry-count {
+  font-Variant-numeric: tabular-nums;
+  min-width: 20px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 2rem;
 }
 
 .spin-button {
@@ -173,6 +272,48 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 2px;
+  margin-bottom: 2rem;
+}
+
+.winner-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.action-btn {
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all var(--transition-fast);
+}
+
+.action-btn.remove-1 {
+  background: rgba(236, 72, 153, 0.1);
+  color: var(--accent-secondary);
+  border: 1px solid var(--accent-secondary);
+}
+.action-btn.remove-1:hover {
+  background: rgba(236, 72, 153, 0.2);
+}
+
+.action-btn.remove-all {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+.action-btn.remove-all:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.action-btn.keep {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-main);
+  border: 1px solid var(--text-muted);
+}
+.action-btn.keep:hover {
+  background: rgba(148, 163, 184, 0.2);
 }
 
 @keyframes popIn {
