@@ -8,9 +8,17 @@ function App() {
     const saved = localStorage.getItem('wheelEntries');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Validate schema: must be an array of objects with valid string names and integer counts >= 0
+        if (Array.isArray(parsed) && parsed.every(e => 
+            e && typeof e.id === 'string' && 
+            typeof e.name === 'string' && 
+            Number.isInteger(e.count) && e.count >= 0)) {
+          return parsed;
+        }
+        console.warn('Invalid wheel entries in localStorage, falling back to default.');
       } catch (e) {
-        // Fallback for old version
+        console.warn('Failed to parse wheel entries from localStorage, falling back to default.');
       }
     }
     return [
