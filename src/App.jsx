@@ -26,8 +26,11 @@ function App() {
   const [prizeNumber, setPrizeNumber] = useState(0);
   const [winner, setWinner] = useState(null); // Will now store { id, name }
 
-  // Generate flat array of segments for the wheel Canvas based on counts
-  const segments = entries.flatMap(entry => Array(entry.count).fill(entry.name));
+  // Generate array of full entry objects for exact winner resolution
+  const wheelSegments = entries.flatMap(entry => Array(entry.count).fill(entry));
+  
+  // Pluck just the names for the Canvas renderer
+  const segments = wheelSegments.map(e => e.name);
 
   // Save to localStorage when it changes
   useEffect(() => {
@@ -71,10 +74,10 @@ function App() {
 
   const handleStopSpinning = () => {
     setMustSpin(false);
-    const winningNameValue = segments[prizeNumber];
-    // Find the original entry to keep track of its ID for modifications
-    const winningEntry = entries.find(e => e.name === winningNameValue);
-    setWinner({ id: winningEntry?.id, name: winningNameValue });
+    
+    // Map the exact prize index back to the specific entry object that won
+    const winningEntry = wheelSegments[prizeNumber];
+    setWinner({ id: winningEntry.id, name: winningEntry.name });
     
     // Trigger celebration
     confetti({
