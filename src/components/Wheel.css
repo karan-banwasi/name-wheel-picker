@@ -1,0 +1,38 @@
+.wheel-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+  max-height: 600px;
+  aspect-ratio: 1;
+}
+
+.wheel-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+}
+
+.wheel-pointer {
+  position: absolute;
+  right: -25px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 50px;
+  height: 50px;
+  background-color: #fff;
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+  z-index: 10;
+  filter: drop-shadow(-4px 0px 8px rgba(0,0,0,0.6));
+}
+
+@media (max-width: 600px) {
+  .wheel-pointer {
+    width: 30px;
+    height: 30px;
+    right: -15px;
+  }
+}
