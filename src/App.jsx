@@ -4,22 +4,67 @@ import Wheel from './components/Wheel'
 import './App.css'
 
 function App() {
-  const [namesText, setNamesText] = useState(() => {
-    const saved = localStorage.getItem('wheelNames');
-    return saved || "Alice\nBob\nCharlie\nDiana\nEvan\nFiona\nGeorge";
+  const [entries, setEntries] = useState(() => {
+    const saved = localStorage.getItem('wheelEntries');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Validate schema: must be an array of objects with valid string names and integer counts >= 0
+        if (Array.isArray(parsed) && parsed.every(e => 
+            e && typeof e.id === 'string' && 
+            typeof e.name === 'string' && 
+            Number.isInteger(e.count) && e.count >= 0)) {
+          return parsed;
+        }
+        console.warn('Invalid wheel entries in localStorage, falling back to default.');
+      } catch (e) {
+        console.warn('Failed to parse wheel entries from localStorage, falling back to default.');
+      }
+    }
+    return [
+      { id: '1', name: 'Alice', count: 1 },
+      { id: '2', name: 'Bob', count: 1 },
+      { id: '3', name: 'Charlie', count: 2 },
+      { id: '4', name: 'Diana', count: 1 }
+    ];
   });
   
+  const [newName, setNewName] = useState("");
   const [mustSpin, setMustSpin] = useState(false);
   const [prizeNumber, setPrizeNumber] = useState(0);
-  const [winner, setWinner] = useState(null);
+  const [winner, setWinner] = useState(null); // Will now store { id, name }
 
-  // Parse valid segments from textarea
-  const segments = namesText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+  // Generate array of full entry objects for exact winner resolution
+  const wheelSegments = entries.flatMap(entry => Array(entry.count).fill(entry));
+  
+  // Pluck just the names for the Canvas renderer
+  const segments = wheelSegments.map(e => e.name);
 
   // Save to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('wheelNames', namesText);
-  }, [namesText]);
+    localStorage.setItem('wheelEntries', JSON.stringify(entries));
+  }, [entries]);
+
+  const handleAddName = (e) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    
+    setEntries(prev => [
+      ...prev, 
+      { id: Date.now().toString(), name: newName.trim(), count: 1 }
+    ]);
+    setNewName("");
+  };
+
+  const updateCount = (id, delta) => {
+    setEntries(prev => prev.map(entry => {
+      if (entry.id === id) {
+        const newCount = Math.max(0, entry.count + delta);
+        return { ...entry, count: newCount };
+      }
+      return entry;
+    }).filter(e => e.count > 0)); // Auto-remove if count reaches 0
+  };
 
   const handleSpinClick = () => {
     if (mustSpin || segments.length === 0) return;
@@ -37,8 +82,10 @@ function App() {
 
   const handleStopSpinning = () => {
     setMustSpin(false);
-    const winningName = segments[prizeNumber];
-    setWinner(winningName);
+    
+    // Map the exact prize index back to the specific entry object that won
+    const winningEntry = wheelSegments[prizeNumber];
+    setWinner({ id: winningEntry.id, name: winningEntry.name });
     
     // Trigger celebration
     confetti({
@@ -47,12 +94,19 @@ function App() {
       origin: { y: 0.6 },
       colors: ['#8b5cf6', '#ec4899', '#f8fafc', '#38bdf8']
     });
-    
-    // Remove winning name logic (removes ALL instances of that name)
-    setTimeout(() => {
-      const newSegments = segments.filter(name => name.toLowerCase() !== winningName.toLowerCase());
-      setNamesText(newSegments.join('\n'));
-    }, 3000); // Wait 3s before removing so user can see it on the wheel
+  };
+
+  const resolveWinner = (action) => {
+    if (!winner) return;
+
+    if (action === 'remove_one') {
+      updateCount(winner.id, -1);
+    } else if (action === 'remove_all') {
+      setEntries(prev => prev.filter(e => e.id !== winner.id));
+    }
+    // 'keep' does nothing to state
+
+    setWinner(null);
   };
 
   const currentNamesCount = segments.length;
@@ -71,8 +125,20 @@ function App() {
         {/* Winner Overlay */}
         {winner && !mustSpin && (
           <div className="winner-announcement">
-            <h1 className="winner-name">{winner}!</h1>
+            <h1 className="winner-name">{winner.name}!</h1>
             <p className="winner-subtext">is the winner</p>
+            
+            <div className="winner-actions">
+              <button className="action-btn remove-1" onClick={() => resolveWinner('remove_one')}>
+                Remove 1 Ticket
+              </button>
+              <button className="action-btn remove-all" onClick={() => resolveWinner('remove_all')}>
+                Remove All
+              </button>
+              <button className="action-btn keep" onClick={() => resolveWinner('keep')}>
+                Keep All
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -87,14 +153,47 @@ function App() {
         </div>
         
         <div className="entries-container">
-          <textarea 
-            className="entries-textarea"
-            value={namesText}
-            onChange={(e) => setNamesText(e.target.value)}
-            disabled={mustSpin}
-            placeholder="Alice&#10;Bob&#10;Charlie"
-            spellCheck="false"
-          />
+          <form className="add-entry-form" onSubmit={handleAddName}>
+            <input 
+              type="text" 
+              value={newName} 
+              onChange={e => setNewName(e.target.value)}
+              placeholder="Add a new name..."
+              className="add-input"
+              disabled={mustSpin}
+            />
+            <button type="submit" className="add-btn" disabled={mustSpin || !newName.trim()}>
+              +
+            </button>
+          </form>
+
+          <div className="entries-list">
+            {entries.map(entry => (
+              <div key={entry.id} className="entry-row">
+                <span className="entry-name">{entry.name}</span>
+                <div className="entry-controls">
+                  <button 
+                    className="count-btn" 
+                    onClick={() => updateCount(entry.id, -1)}
+                    disabled={mustSpin}
+                  >
+                    -
+                  </button>
+                  <span className="entry-count">{entry.count}</span>
+                  <button 
+                    className="count-btn" 
+                    onClick={() => updateCount(entry.id, 1)}
+                    disabled={mustSpin}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            ))}
+            {entries.length === 0 && (
+              <div className="empty-state">No entries yet. Add some above!</div>
+            )}
+          </div>
         </div>
         
         <button 
