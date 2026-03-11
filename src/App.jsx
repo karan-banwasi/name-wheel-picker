@@ -4,7 +4,7 @@ import Wheel from './components/Wheel'
 import './App.css'
 
 function App() {
-  const [entries, setEntries] = useState(() => {
+  const getInitialEntries = () => {
     const saved = localStorage.getItem('wheelEntries');
     if (saved) {
       try {
@@ -27,18 +27,44 @@ function App() {
       { id: '3', name: 'Charlie', count: 2 },
       { id: '4', name: 'Diana', count: 1 }
     ];
-  });
+  };
+
+  const [entries, setEntries] = useState(getInitialEntries);
+  const [displayTickets, setDisplayTickets] = useState(() => getInitialEntries().flatMap(entry => Array(entry.count).fill(entry)));
   
   const [newName, setNewName] = useState("");
   const [mustSpin, setMustSpin] = useState(false);
   const [prizeNumber, setPrizeNumber] = useState(0);
   const [winner, setWinner] = useState(null); // Will now store { id, name }
 
-  // Generate array of full entry objects for exact winner resolution
-  const wheelSegments = entries.flatMap(entry => Array(entry.count).fill(entry));
-  
+  useEffect(() => {
+    setDisplayTickets(prev => {
+      const targetCounts = entries.reduce((acc, e) => ({...acc, [e.id]: e.count}), {});
+      const currentCounts = {};
+      const nextDisplay = [];
+       
+      for (const ticket of prev) {
+        if (!currentCounts[ticket.id]) currentCounts[ticket.id] = 0;
+        if (currentCounts[ticket.id] < (targetCounts[ticket.id] || 0)) {
+          const latestEntry = entries.find(e => e.id === ticket.id) || ticket;
+          nextDisplay.push(latestEntry);
+          currentCounts[ticket.id]++;
+        }
+      }
+       
+      for (const entry of entries) {
+        const needed = entry.count - (currentCounts[entry.id] || 0);
+        for (let i = 0; i < needed; i++) {
+          nextDisplay.push(entry);
+        }
+      }
+       
+      return nextDisplay;
+    });
+  }, [entries]);
+
   // Pluck just the names for the Canvas renderer
-  const segments = wheelSegments.map(e => e.name);
+  const segments = displayTickets.map(e => e.name);
 
   // Save to localStorage when it changes
   useEffect(() => {
@@ -84,7 +110,7 @@ function App() {
     setMustSpin(false);
     
     // Map the exact prize index back to the specific entry object that won
-    const winningEntry = wheelSegments[prizeNumber];
+    const winningEntry = displayTickets[prizeNumber];
     setWinner({ id: winningEntry.id, name: winningEntry.name });
     
     // Trigger celebration
@@ -107,6 +133,18 @@ function App() {
     // 'keep' does nothing to state
 
     setWinner(null);
+  };
+
+  const handleShuffle = () => {
+    if (mustSpin || displayTickets.length === 0) return;
+    setDisplayTickets(prev => {
+      const shuffled = [...prev];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    });
   };
 
   const currentNamesCount = segments.length;
@@ -196,17 +234,31 @@ function App() {
           </div>
         </div>
         
-        <button 
-          className="spin-button" 
-          onClick={handleSpinClick}
-          disabled={mustSpin || currentNamesCount === 0}
-          style={{ 
-            opacity: (mustSpin || currentNamesCount === 0) ? 0.5 : 1,
-            cursor: (mustSpin || currentNamesCount === 0) ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {mustSpin ? 'Spinning...' : 'Spin Wheel!'}
-        </button>
+        <div className="action-buttons-container">
+          <button 
+            className="shuffle-button" 
+            onClick={handleShuffle}
+            disabled={mustSpin || currentNamesCount === 0}
+            style={{ 
+              opacity: (mustSpin || currentNamesCount === 0) ? 0.5 : 1,
+              cursor: (mustSpin || currentNamesCount === 0) ? 'not-allowed' : 'pointer'
+            }}
+          >
+            Shuffle
+          </button>
+          
+          <button 
+            className="spin-button" 
+            onClick={handleSpinClick}
+            disabled={mustSpin || currentNamesCount === 0}
+            style={{ 
+              opacity: (mustSpin || currentNamesCount === 0) ? 0.5 : 1,
+              cursor: (mustSpin || currentNamesCount === 0) ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {mustSpin ? 'Spinning...' : 'Spin Wheel!'}
+          </button>
+        </div>
       </div>
     </div>
   )
