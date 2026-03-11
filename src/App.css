@@ -190,6 +190,34 @@
   margin-top: 2rem;
 }
 
+.action-buttons-container {
+  display: flex;
+  gap: 1rem;
+}
+
+.shuffle-button {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+  border: 1px solid var(--surface-border);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all var(--transition-fast);
+  flex: 1;
+}
+
+.shuffle-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.shuffle-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 .spin-button {
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: white;
@@ -201,6 +229,7 @@
   letter-spacing: 1px;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   box-shadow: 0 4px 15px var(--accent-glow);
+  flex: 2;
 }
 
 .spin-button:hover {
