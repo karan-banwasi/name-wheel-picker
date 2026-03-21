@@ -36,24 +36,30 @@ function App() {
   const [mustSpin, setMustSpin] = useState(false);
   const [prizeNumber, setPrizeNumber] = useState(0);
   const [winner, setWinner] = useState(null); // Will now store { id, name }
+  const [spinTickets, setSpinTickets] = useState([]); // Array snapshot
 
   useEffect(() => {
     setDisplayTickets(prev => {
-      const targetCounts = entries.reduce((acc, e) => ({...acc, [e.id]: e.count}), {});
-      const currentCounts = {};
+      const entryById = new Map(entries.map(e => [e.id, e]));
+      const targetCounts = new Map(entries.map(e => [e.id, e.count]));
+      
+      const currentCounts = new Map();
       const nextDisplay = [];
        
       for (const ticket of prev) {
-        if (!currentCounts[ticket.id]) currentCounts[ticket.id] = 0;
-        if (currentCounts[ticket.id] < (targetCounts[ticket.id] || 0)) {
-          const latestEntry = entries.find(e => e.id === ticket.id) || ticket;
+        const currentCount = currentCounts.get(ticket.id) ?? 0;
+        const targetCount = targetCounts.get(ticket.id) ?? 0;
+        
+        if (currentCount < targetCount) {
+          const latestEntry = entryById.get(ticket.id) ?? ticket;
           nextDisplay.push(latestEntry);
-          currentCounts[ticket.id]++;
+          currentCounts.set(ticket.id, currentCount + 1);
         }
       }
        
       for (const entry of entries) {
-        const needed = entry.count - (currentCounts[entry.id] || 0);
+        const currentCount = currentCounts.get(entry.id) ?? 0;
+        const needed = entry.count - currentCount;
         for (let i = 0; i < needed; i++) {
           nextDisplay.push(entry);
         }
@@ -63,8 +69,10 @@ function App() {
     });
   }, [entries]);
 
-  // Pluck just the names for the Canvas renderer
-  const segments = displayTickets.map(e => e.name);
+  // Pluck just the names for the Canvas renderer. If spinning, freeze to the snapshot 
+  // so the board doesn't visibly alter mid-spin while allowing background entry state convergence.
+  const activeTickets = spinTickets.length > 0 ? spinTickets : displayTickets;
+  const segments = activeTickets.map(e => e.name);
 
   // Save to localStorage when it changes
   useEffect(() => {
@@ -93,14 +101,16 @@ function App() {
   };
 
   const handleSpinClick = () => {
-    if (mustSpin || segments.length === 0) return;
+    const currentTickets = displayTickets;
+    if (mustSpin || currentTickets.length === 0) return;
     
     // Pick a random winner cryptographically
     const randomBuffer = new Uint32Array(1);
     crypto.getRandomValues(randomBuffer);
     const randomNumber = randomBuffer[0] / (0xffffffff + 1);
     
-    const newPrizeNumber = Math.floor(randomNumber * segments.length);
+    const newPrizeNumber = Math.floor(randomNumber * currentTickets.length);
+    setSpinTickets(currentTickets); // Freeze spin inputs against async background changes
     setPrizeNumber(newPrizeNumber);
     setMustSpin(true);
     setWinner(null); // Clear previous winner overlay
@@ -110,8 +120,19 @@ function App() {
     setMustSpin(false);
     
     // Map the exact prize index back to the specific entry object that won
-    const winningEntry = displayTickets[prizeNumber];
+    const activeTickets = spinTickets.length > 0 ? spinTickets : displayTickets;
+    const winningEntry = activeTickets[prizeNumber];
+    
+    // Defensive check in case of state desync
+    if (!winningEntry) {
+      console.error(`Spin resolution failed: No winning entry found at index ${prizeNumber}`);
+      setWinner(null);
+      setSpinTickets([]);
+      return; 
+    }
+    
     setWinner({ id: winningEntry.id, name: winningEntry.name });
+    // Keep spinTickets snapshot until the winner is resolved to maintain wheel visual state
     
     // Trigger celebration
     confetti({
@@ -133,6 +154,7 @@ function App() {
     // 'keep' does nothing to state
 
     setWinner(null);
+    setSpinTickets([]); // Clear the frozen snapshot so the wheel updates to live tickets
   };
 
   const handleShuffle = () => {
